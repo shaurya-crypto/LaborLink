@@ -8,13 +8,25 @@ import { SavedJobsScreen } from '@/screens/main/SavedJobsScreen';
 import { useAppStore } from '@/store/useAppStore';
 import { HomeScreen } from '@/screens/main/HomeScreen';
 
+import { EmployerTabNavigator } from './EmployerTabNavigator';
+import { 
+  PostJobScreen, 
+  ApplicantsScreen, 
+  WorkerProfileScreen, 
+  EmployerNotificationsScreen 
+} from '@/screens/employer';
+
 export type MainStackParamList = {
   WorkerTabs: undefined;
-  EmployerDashboard: undefined;
-  EmployerSetup: undefined;
   JobDetails: { jobId: string };
   Notifications: undefined;
-  SavedJobs: undefined; // Accessible from Profile or Home depending on design
+  SavedJobs: undefined;
+  
+  EmployerTabs: undefined;
+  PostJob: undefined;
+  Applicants: { jobId: string };
+  WorkerProfile: { workerId: string };
+  EmployerNotifications: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -26,8 +38,11 @@ export const MainNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {role === 'employer' ? (
         <>
-          <Stack.Screen name="EmployerDashboard" component={HomeScreen} />
-          <Stack.Screen name="EmployerSetup" component={EmployerSetupScreen} />
+          <Stack.Screen name="EmployerTabs" component={EmployerTabNavigator} />
+          <Stack.Screen name="PostJob" component={PostJobScreen} />
+          <Stack.Screen name="Applicants" component={ApplicantsScreen} />
+          <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
+          <Stack.Screen name="EmployerNotifications" component={EmployerNotificationsScreen} />
         </>
       ) : (
         <>

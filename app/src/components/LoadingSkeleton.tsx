@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { colors, metrics } from '@/theme';
 
-export const LoadingSkeleton = ({ type = 'jobCard' }: { type?: 'jobCard' | 'category' | 'profile' }) => {
+export const LoadingSkeleton = ({ type = 'jobCard', width, height, style }: { type?: 'jobCard' | 'category' | 'profile' | 'custom', width?: number | string, height?: number | string, style?: any }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -37,6 +37,12 @@ export const LoadingSkeleton = ({ type = 'jobCard' }: { type?: 'jobCard' | 'cate
           </View>
         ))}
       </View>
+    );
+  }
+
+  if (type === 'custom') {
+    return (
+      <Animated.View style={[{ width, height, backgroundColor: colors.divider, opacity }, style]} />
     );
   }
 
