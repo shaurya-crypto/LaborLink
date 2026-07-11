@@ -1,8 +1,10 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+﻿import React from 'react';
+import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, View, StyleProp } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { colors, metrics, typography } from '@/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outlined' | 'text';
+type ButtonVariant = 'primary' | 'secondary' | 'outlined' | 'text' | 'danger';
 
 interface ButtonProps {
   title: string;
@@ -10,10 +12,13 @@ interface ButtonProps {
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
+  gradient?: string[];
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -24,48 +29,100 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   icon,
+  gradient = colors.gradients.primary,
 }) => {
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary';
   const isOutlined = variant === 'outlined';
   const isText = variant === 'text';
+  const isDanger = variant === 'danger';
 
-  const containerStyles = [
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const handlePressIn = () => {
+    // Premium spring physics: scale down to 0.97 on press
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+    if (isSecondary || isOutlined || isText) {
+      opacity.value = withTiming(0.6, { duration: 150 });
+    }
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    if (isSecondary || isOutlined || isText) {
+      opacity.value = withTiming(1, { duration: 250 });
+    }
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: disabled ? 0.5 : opacity.value,
+  }));
+
+  const containerStyles: any = [
     styles.container,
-    isPrimary && styles.primaryContainer,
     isSecondary && styles.secondaryContainer,
     isOutlined && styles.outlinedContainer,
     isText && styles.textContainer,
-    disabled && styles.disabledContainer,
+    isDanger && styles.dangerContainer,
     style,
   ];
 
-  const labelStyles = [
+  const labelStyles: any = [
     styles.label,
     isPrimary && styles.primaryLabel,
     isSecondary && styles.secondaryLabel,
     isOutlined && styles.outlinedLabel,
     isText && styles.textLabel,
-    disabled && styles.disabledLabel,
+    isDanger && styles.dangerLabel,
     textStyle,
   ];
 
-  return (
-    <TouchableOpacity
-      style={containerStyles}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-    >
+  const content = (
+    <>
+      {icon && <View style={styles.iconContainer}>{icon}</View>}
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.surface : colors.primary} />
+        <ActivityIndicator color={isPrimary ? '#FFFFFF' : colors.primary} />
       ) : (
-        <>
-          {icon && icon}
-          <Text style={labelStyles}>{title}</Text>
-        </>
+        <Text style={labelStyles}>{title}</Text>
       )}
-    </TouchableOpacity>
+    </>
+  );
+
+  if (isPrimary) {
+    return (
+      <AnimatedPressable
+        style={[animatedStyle, style]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={loading || disabled}
+        android_ripple={{ color: 'rgba(255,255,255,0.2)', borderless: false }}
+      >
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.container, styles.primaryContainer]}
+        >
+          {content}
+        </LinearGradient>
+      </AnimatedPressable>
+    );
+  }
+
+  return (
+    <AnimatedPressable
+      style={[containerStyles, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled || loading}
+      android_ripple={{ color: isDanger ? colors.error + '40' : colors.primary + '20', borderless: false }}
+    >
+      {content}
+    </AnimatedPressable>
   );
 };
 
@@ -77,35 +134,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: metrics.spacing.l,
-    gap: metrics.spacing.s,
+    minWidth: metrics.touchTarget,
+  },
+  iconContainer: {
+    marginRight: metrics.spacing.s,
   },
   label: {
     fontFamily: typography.fontFamily.semiBold,
     fontSize: typography.sizes.body1,
+    letterSpacing: -0.3, // Modern tight tracking for premium feel
   },
   
-  // Primary
+  // Primary Gradient Button
   primaryContainer: {
-    backgroundColor: colors.primary,
-    ...metrics.shadows.soft,
+    borderWidth: 0,
+    ...metrics.shadows.glow, // Uses the new Electric Blue glow shadow
   },
   primaryLabel: {
-    color: colors.surface,
+    color: '#FFFFFF',
   },
   
-  // Secondary
+  // Secondary Glassmorphic Button
   secondaryContainer: {
-    backgroundColor: colors.secondaryBackground,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   secondaryLabel: {
-    color: colors.primaryDark,
+    color: colors.textPrimary,
   },
 
   // Outlined
   outlinedContainer: {
     backgroundColor: colors.transparent,
-    borderWidth: 1.5,
-    borderColor: colors.divider,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   outlinedLabel: {
     color: colors.textPrimary,
@@ -121,14 +184,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  // Disabled
-  disabledContainer: {
-    backgroundColor: colors.divider,
-    borderColor: colors.transparent,
-    elevation: 0,
-    shadowOpacity: 0,
+  // Danger
+  dangerContainer: {
+    backgroundColor: colors.error + '20',
+    borderWidth: 1,
+    borderColor: colors.error + '40',
   },
-  disabledLabel: {
-    color: colors.textSecondary,
+  dangerLabel: {
+    color: colors.error,
   },
 });

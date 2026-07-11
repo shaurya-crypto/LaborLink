@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+﻿import React from 'react';
+import { View, Text, StyleSheet, } from 'react-native';
 import { colors, typography, metrics } from '@/theme';
 
 type BadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'primary' | 'neutral';
@@ -12,13 +12,13 @@ interface StatusBadgeProps {
 
 const getVariantStyles = (variant: BadgeVariant) => {
   switch (variant) {
-    case 'success': return { bg: '#E8F5E9', text: '#2E7D32' };
-    case 'warning': return { bg: '#FFF8E1', text: '#F57F17' };
-    case 'error': return { bg: '#FFEBEE', text: '#C62828' };
-    case 'info': return { bg: '#E3F2FD', text: '#1565C0' };
-    case 'primary': return { bg: colors.primary + '1A', text: colors.primaryDark };
+    case 'success': return { border: colors.success + '40', bg: colors.success + '15', text: colors.success };
+    case 'warning': return { border: colors.warning + '40', bg: colors.warning + '15', text: colors.warning };
+    case 'error': return { border: colors.error + '40', bg: colors.error + '15', text: colors.error };
+    case 'info': return { border: colors.accent + '40', bg: colors.accent + '15', text: colors.accent };
+    case 'primary': return { border: colors.primary + '50', bg: colors.primary + '20', text: colors.primary };
     case 'neutral':
-    default: return { bg: colors.secondaryBackground, text: colors.textSecondary };
+    default: return { border: colors.border, bg: colors.glass, text: colors.textSecondary };
   }
 };
 
@@ -26,7 +26,7 @@ export const StatusBadge = ({ label, variant = 'neutral', style }: StatusBadgePr
   const vs = getVariantStyles(variant);
   
   return (
-    <View style={[styles.container, { backgroundColor: vs.bg }, style]}>
+    <View style={[styles.container, { backgroundColor: vs.bg, borderColor: vs.border }, style]}>
       <Text style={[styles.label, { color: vs.text }]} numberOfLines={1}>
         {label}
       </Text>
@@ -36,17 +36,17 @@ export const StatusBadge = ({ label, variant = 'neutral', style }: StatusBadgePr
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: metrics.spacing.s,
-    paddingVertical: 4,
-    borderRadius: metrics.radiusS,
+    paddingHorizontal: metrics.spacing.m,
+    paddingVertical: 6,
+    borderRadius: metrics.radiusPill,
+    borderWidth: 1,
     alignSelf: 'flex-start',
     justifyContent: 'center',
     alignItems: 'center',
   },
   label: {
     fontFamily: typography.fontFamily.semiBold,
-    fontSize: 10,
-    textTransform: 'uppercase',
+    fontSize: 11,
     letterSpacing: 0.5,
   }
 });

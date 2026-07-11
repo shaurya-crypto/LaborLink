@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+﻿import React from 'react';
+
 import { EmptyState, ScreenContainer } from '@/components';
 import { colors } from '@/theme';
 

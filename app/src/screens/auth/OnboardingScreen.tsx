@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { ScreenContainer, Button } from '@/components';
 import { colors, metrics, typography } from '@/theme';
 import Icon from 'react-native-vector-icons/Feather';
+
+const SelectableOption = ({ label, selected, onSelect }: any) => (
+  <TouchableOpacity 
+    style={[styles.optionCard, selected && styles.optionCardSelected]} 
+    onPress={onSelect}
+  >
+    <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{label}</Text>
+    {selected && <Icon name="check" size={20} color={colors.primary} />}
+  </TouchableOpacity>
+);
 
 export const OnboardingScreen = () => {
   const navigation = useNavigation<any>();
@@ -35,15 +43,6 @@ export const OnboardingScreen = () => {
     }
   };
 
-  const SelectableOption = ({ label, selected, onSelect }: any) => (
-    <TouchableOpacity 
-      style={[styles.optionCard, selected && styles.optionCardSelected]} 
-      onPress={onSelect}
-    >
-      <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{label}</Text>
-      {selected && <Icon name="check" size={20} color={colors.primary} />}
-    </TouchableOpacity>
-  );
 
   return (
     <ScreenContainer backgroundColor={colors.surface} scrollable style={styles.container}>

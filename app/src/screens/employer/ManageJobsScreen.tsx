@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Platform } from 'react-native';
 import { ScreenContainer, JobStatusCard, EmptyState, LoadingSkeleton } from '@/components';
 import { colors, typography, metrics } from '@/theme';
@@ -12,14 +12,14 @@ const TABS: JobStatus[] = ['Open', 'In Progress', 'Completed', 'Draft', 'Closed'
 
 export const ManageJobsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
-  const { employerJobs, loadingJobs, fetchEmployerJobs } = useEmployerStore();
+  const { jobs, loading, fetchDashboardData } = useEmployerStore();
   const [activeTab, setActiveTab] = useState<JobStatus>('Open');
 
   useEffect(() => {
-    fetchEmployerJobs();
-  }, []);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  const filteredJobs = employerJobs.filter(job => job.status === activeTab);
+  const filteredJobs = jobs.filter(job => job.status === activeTab);
 
   const renderTabs = () => (
     <View style={styles.tabsContainer}>
@@ -51,10 +51,10 @@ export const ManageJobsScreen = () => {
 
       {renderTabs()}
 
-      {loadingJobs && employerJobs.length === 0 ? (
+      {loading && jobs.length === 0 ? (
         <View style={styles.listContainer}>
-          <LoadingSkeleton type="custom" width="100%" height={160} style={{marginBottom: 16, borderRadius: metrics.radiusCard}} />
-          <LoadingSkeleton type="custom" width="100%" height={160} style={{borderRadius: metrics.radiusCard}} />
+          <LoadingSkeleton type="custom" width="100%" height={160} style={styles.skeletonSpacer} />
+          <LoadingSkeleton type="custom" width="100%" height={160} style={styles.skeletonCard} />
         </View>
       ) : (
         <FlatList
@@ -63,7 +63,7 @@ export const ManageJobsScreen = () => {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={loadingJobs} onRefresh={fetchEmployerJobs} colors={[colors.primary]} />
+            <RefreshControl refreshing={loading} onRefresh={fetchDashboardData} colors={[colors.primary]} />
           }
           renderItem={({ item }) => (
             <JobStatusCard 
@@ -130,5 +130,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: metrics.spacing.l,
     paddingBottom: metrics.spacing.xxl,
     flexGrow: 1,
+  },
+  skeletonSpacer: {
+    marginBottom: 16,
+    borderRadius: metrics.radiusCard,
+  },
+  skeletonCard: {
+    borderRadius: metrics.radiusCard,
   }
 });

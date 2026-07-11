@@ -21,7 +21,7 @@ export interface Job {
   requirements: string[];
   benefits: string[];
   
-  // Dynamic mock badges injected by MockDataService based on user profile
+  // injected by MockDataService based on user profile
   matchLabels?: string[]; 
 }
 

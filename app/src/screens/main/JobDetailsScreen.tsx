@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+﻿import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
-import { ScreenContainer, Button, StatusBadge, BottomSheet } from '@/components';
+import { ScreenContainer, Button, StatusBadge, BottomSheet, TimelineCard, TrustBadge } from '@/components';
 import { colors, metrics, typography } from '@/theme';
 import { useJobStore } from '@/store/useJobStore';
-import { useAuthStore } from '@/store/useAuthStore';
-import { mockDataService } from '@/services/MockDataService';
+import { useTimelineStore } from '@/store/useTimelineStore';
+import { jobService } from '@/services/JobService';
 import { Job } from '@/models/Job';
 
 export const JobDetailsScreen = () => {
@@ -14,7 +15,7 @@ export const JobDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const { jobId } = route.params;
 
-  const { user } = useAuthStore();
+  
   const { bookmarkedJobIds, toggleBookmark, applyForJob, applications } = useJobStore();
   
   const [job, setJob] = useState<Job | null>(null);
@@ -24,9 +25,13 @@ export const JobDetailsScreen = () => {
 
   const isBookmarked = bookmarkedJobIds.includes(jobId);
   const hasApplied = applications.some(a => a.jobId === jobId);
+  const app = applications.find(a => a.jobId === jobId);
+  const getTimelineForJob = useTimelineStore(state => state.getTimelineForJob);
+  const timelineSteps = getTimelineForJob(jobId, app?.status, app?.appliedAt);
 
   useEffect(() => {
-    mockDataService.getJobDetails(jobId, user).then(res => {
+    setLoading(true);
+    jobService.getJobById(jobId, true).then(res => {
       setJob(res);
       setLoading(false);
     });
@@ -38,11 +43,15 @@ export const JobDetailsScreen = () => {
     setApplying(false);
     setApplySheetVisible(false);
     
-    // Simulate success animation/alert
-    Alert.alert('Success', 'Your application has been submitted successfully!', [
-      { text: 'View Applications', onPress: () => navigation.navigate('WorkerTabs', { screen: 'ApplicationsTab' }) },
-      { text: 'OK' }
-    ]);
+    Toast.show({
+      type: 'success',
+      text1: 'Application Submitted',
+      text2: 'Your application has been submitted successfully!',
+      onPress: () => {
+        Toast.hide();
+        navigation.navigate('WorkerTabs', { screen: 'ApplicationsTab' });
+      }
+    });
   };
 
   if (loading) {
@@ -112,6 +121,11 @@ export const JobDetailsScreen = () => {
           </View>
         </View>
 
+        {/* Application Timeline – shown when user has applied */}
+        {hasApplied && (
+          <TimelineCard steps={timelineSteps} />
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Salary</Text>
           <Text style={styles.salaryText}>
@@ -150,6 +164,17 @@ export const JobDetailsScreen = () => {
             {job.benefits.map((ben, idx) => (
               <StatusBadge key={idx} label={ben} variant="success" style={styles.badge} />
             ))}
+          </View>
+        </View>
+
+        {/* Employer Trust Indicators */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Employer Trust</Text>
+          <View style={styles.trustRow}>
+            {job.isVerified && <TrustBadge variant="verified-profile" />}
+            <TrustBadge variant="response-time" value="<1 hr" />
+            <TrustBadge variant="jobs-completed" value={12} />
+            <TrustBadge variant="hiring-success" value="96%" />
           </View>
         </View>
 
@@ -388,5 +413,10 @@ const styles = StyleSheet.create({
   },
   sheetBtn: {
     marginTop: metrics.spacing.l,
-  }
+  },
+  trustRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: metrics.spacing.s,
+  },
 });

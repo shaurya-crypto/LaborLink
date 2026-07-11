@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LocationService abstracts geocoding and location retrieval.
  * Uses Nominatim (OpenStreetMap) as a free reverse-geocoding provider.
  */

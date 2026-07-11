@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Feather';
-import { ScreenContainer, Button, JobCard, CategoryCard, LoadingSkeleton } from '@/components';
+import LinearGradient from 'react-native-linear-gradient';
+import { ScreenContainer, JobCard, CategoryCard, LoadingSkeleton, ActivityCard, EmptyState } from '@/components';
 import { colors, metrics, typography } from '@/theme';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useJobStore } from '@/store/useJobStore';
+import { useActivityStore } from '@/store/useActivityStore';
+import { useChatStore } from '@/store/useChatStore';
 import { authService } from '@/services/AuthService';
-import { mockDataService } from '@/services/MockDataService';
 import { MainStackParamList } from '@/navigation/MainNavigator';
 
 export const HomeScreen = () => {
@@ -19,21 +21,31 @@ export const HomeScreen = () => {
   const mainNav = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
   const { recommendedJobs, nearbyJobs, loadingJobs, fetchHomeData, toggleBookmark, bookmarkedJobIds } = useJobStore();
+  const { todayActivities, initializeActivities } = useActivityStore();
+  const { totalUnread, initializeConversations } = useChatStore();
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     if (role === 'worker') {
       fetchHomeData();
-      mockDataService.getCategories().then(setCategories);
+      setCategories([
+        { id: 'cat-1', name: 'Electrician', icon: 'zap' },
+        { id: 'cat-2', name: 'Plumber', icon: 'tool' },
+        { id: 'cat-3', name: 'Carpenter', icon: 'home' },
+        { id: 'cat-4', name: 'Painter', icon: 'pen-tool' },
+        { id: 'cat-5', name: 'Mason', icon: 'grid' },
+      ]);
+      initializeActivities();
+      initializeConversations();
     }
-  }, [role]);
+  }, [role, fetchHomeData, initializeActivities, initializeConversations]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchHomeData();
     setRefreshing(false);
-  }, []);
+  }, [fetchHomeData]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -49,25 +61,34 @@ export const HomeScreen = () => {
 
   if (role === 'employer') {
     return (
-      <ScreenContainer backgroundColor={colors.background} style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.greetingText}>Welcome back,</Text>
-          <Text style={styles.name}>{user?.name || 'Employer'}!</Text>
-        </View>
-        <View style={styles.employerContent}>
-          <View style={styles.emptyState}>
-            <Icon name="briefcase" size={48} color={colors.divider} />
-            <Text style={styles.emptyTitle}>No Jobs Yet</Text>
-            <Text style={styles.emptySubtitle}>Post a job to start finding workers.</Text>
-            <Button 
-              title="Post a Job" 
-              onPress={() => navigation.navigate('EmployerSetup')} 
-              style={styles.postJobBtn} 
-              icon={<Icon name="plus" size={20} color={colors.surface} />}
-            />
+      <ScreenContainer backgroundColor={colors.background}>
+        <LinearGradient
+          colors={colors.gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.employerHeaderGradient}
+        >
+          <View style={styles.topBar}>
+            <Text style={styles.logoTextWhite}>LaborLink</Text>
+            <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+               <Icon name="log-out" size={20} color={colors.surface} />
+            </TouchableOpacity>
           </View>
+          <View style={styles.employerHeaderContent}>
+            <Text style={styles.greetingTextWhite}>Welcome back,</Text>
+            <Text style={styles.nameWhite}>{user?.name || 'Employer'}!</Text>
+          </View>
+        </LinearGradient>
+        <View style={styles.employerContent}>
+          <EmptyState 
+            icon="briefcase" 
+            title="No Jobs Yet" 
+            subtitle="Post a job to start finding workers." 
+            actionTitle="Post a Job" 
+            onAction={() => navigation.navigate('EmployerSetup')}
+            gradient={colors.gradients.primary}
+          />
         </View>
-        <Button title="Logout" variant="text" onPress={handleLogout} />
       </ScreenContainer>
     );
   }
@@ -80,36 +101,78 @@ export const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={styles.topBar}>
-          <Text style={styles.logoText}>LaborLink</Text>
-          <View style={styles.topBarRight}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('SearchTab')}>
-              <Icon name="search" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => mainNav.navigate('Notifications')}>
-              <Icon name="bell" size={24} color={colors.textPrimary} />
-              <View style={styles.notificationDot} />
+        <LinearGradient
+          colors={colors.gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.topBar}>
+            <Text style={styles.logoTextWhite}>LaborLink</Text>
+            <View style={styles.topBarRight}>
+              <TouchableOpacity style={styles.iconBtnWhite} onPress={() => navigation.navigate('SearchTab')}>
+                <Icon name="search" size={24} color={colors.surface} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtnWhite} onPress={() => mainNav.navigate('Notifications')}>
+                <Icon name="bell" size={24} color={colors.surface} />
+                <View style={styles.notificationDot} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.greetingSection}>
+            <Text style={styles.greetingTextWhite}>{getGreeting()}</Text>
+            <Text style={styles.nameWhite}>{user?.name?.split(' ')[0] || 'Worker'} 👋</Text>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <TouchableOpacity 
+              style={styles.searchPlaceholder}
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('SearchTab')}
+            >
+              <Icon name="search" size={20} color={colors.textSecondary} />
+              <Text style={styles.searchText}>Search jobs, electricians, plumbers...</Text>
+              <View style={styles.filterBtn}>
+                <Icon name="sliders" size={16} color={colors.surface} />
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
-        <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>{getGreeting()} {user?.name?.split(' ')[0] || 'Worker'} 👋</Text>
-          <Text style={styles.greetingSub}>Ready to find today's work?</Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <TouchableOpacity 
-            style={styles.searchPlaceholder}
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate('SearchTab')}
-          >
-            <Icon name="search" size={20} color={colors.textSecondary} />
-            <Text style={styles.searchText}>Search jobs, electricians, plumbers...</Text>
-            <View style={styles.filterBtn}>
-              <Icon name="sliders" size={16} color={colors.surface} />
-            </View>
-          </TouchableOpacity>
+        {/* QUICK ACTIONS */}
+        <View style={[styles.section, styles.quickActionsSection]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRow}>
+            <TouchableOpacity style={styles.quickAction} onPress={() => mainNav.navigate('ConversationList')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Icon name="message-circle" size={24} color={colors.primary} />
+                {totalUnread > 0 && (
+                  <View style={styles.quickActionBadge}>
+                    <Text style={styles.quickActionBadgeText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.quickActionLabel}>Chats</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction} onPress={() => mainNav.navigate('Activity')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Icon name="activity" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.quickActionLabel}>Activity</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction} onPress={() => mainNav.navigate('Notifications')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Icon name="bell" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.quickActionLabel}>Alerts</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction} onPress={() => mainNav.navigate('SavedJobs')}>
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Icon name="bookmark" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.quickActionLabel}>Saved</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
         <View style={styles.section}>
@@ -136,15 +199,21 @@ export const HomeScreen = () => {
           {loadingJobs && !refreshing ? (
             <LoadingSkeleton type="jobCard" />
           ) : (
-            recommendedJobs.map(job => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                onPress={() => mainNav.navigate('JobDetails', { jobId: job.id })}
-                onBookmark={() => toggleBookmark(job)}
-                isBookmarked={bookmarkedJobIds.includes(job.id)}
-              />
-            ))
+            <View style={{ paddingHorizontal: metrics.spacing.l }}>
+              {recommendedJobs.length === 0 ? (
+                 <EmptyState title="No Jobs Found" subtitle="Check back later." />
+              ) : (
+                recommendedJobs.map(job => (
+                  <JobCard 
+                    key={job.id} 
+                    job={job} 
+                    onPress={() => mainNav.navigate('JobDetails', { jobId: job.id })}
+                    onBookmark={() => toggleBookmark(job)}
+                    isBookmarked={bookmarkedJobIds.includes(job.id)}
+                  />
+                ))
+              )}
+            </View>
           )}
         </View>
 
@@ -170,102 +239,137 @@ export const HomeScreen = () => {
             </ScrollView>
           )}
         </View>
+
+        {/* RECENT ACTIVITY */}
+        {todayActivities.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <TouchableOpacity onPress={() => mainNav.navigate('Activity')}>
+                <Text style={styles.seeAll}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: metrics.spacing.l }}>
+              {todayActivities.slice(0, 3).map(activity => (
+                <ActivityCard key={activity.id} activity={activity} onPress={() => mainNav.navigate('Activity')} />
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: metrics.spacing.l,
-  },
   scrollContent: {
     paddingBottom: metrics.spacing.xxl,
   },
-  header: {
-    marginTop: metrics.spacing.l,
-    marginBottom: metrics.spacing.xl,
+  headerGradient: {
+    paddingTop: 50, // Safe area approx
+    paddingBottom: metrics.spacing.xxl,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: metrics.spacing.m,
   },
-  name: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h2,
-    color: colors.textPrimary,
+  employerHeaderGradient: {
+    paddingTop: 50,
+    paddingBottom: metrics.spacing.xxxl,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: metrics.spacing.l,
-    paddingTop: metrics.spacing.l,
+    marginBottom: metrics.spacing.xl,
   },
-  logoText: {
+  logoTextWhite: {
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.h2,
-    color: colors.primary,
+    color: colors.surface,
   },
   topBarRight: {
     flexDirection: 'row',
     gap: metrics.spacing.m,
   },
-  iconBtn: {
-    position: 'relative',
+  iconBtnWhite: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoutBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notificationDot: {
     position: 'absolute',
-    top: 0,
-    right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: colors.error,
-    borderWidth: 1,
-    borderColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  employerHeaderContent: {
+    paddingHorizontal: metrics.spacing.l,
   },
   greetingSection: {
     paddingHorizontal: metrics.spacing.l,
-    paddingTop: metrics.spacing.l,
-    marginBottom: metrics.spacing.l,
+    marginBottom: metrics.spacing.xl,
   },
-  greetingText: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h2,
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  greetingSub: {
+  greetingTextWhite: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.sizes.body1,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  nameWhite: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: typography.sizes.h1,
+    color: colors.surface,
   },
   searchContainer: {
     paddingHorizontal: metrics.spacing.l,
-    marginBottom: metrics.spacing.xl,
+    transform: [{ translateY: 26 }],
+    zIndex: 10,
   },
   searchPlaceholder: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
     paddingHorizontal: metrics.spacing.m,
-    height: 52,
+    height: 60, // Taller touch target
     borderRadius: metrics.radiusCard,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    ...metrics.shadows.soft,
+    ...metrics.shadows.medium,
   },
   searchText: {
     flex: 1,
     marginLeft: metrics.spacing.s,
     fontFamily: typography.fontFamily.regular,
-    fontSize: typography.sizes.body2,
+    fontSize: typography.sizes.body1,
     color: colors.textSecondary,
   },
   filterBtn: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: metrics.radiusS,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  quickActionsSection: {
+    marginTop: 16,
   },
   section: {
     marginBottom: metrics.spacing.xl,
@@ -283,43 +387,65 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   seeAll: {
-    fontFamily: typography.fontFamily.semiBold,
+    fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.body2,
     color: colors.primary,
   },
   horizontalScroll: {
     paddingHorizontal: metrics.spacing.l,
     gap: metrics.spacing.m,
+    paddingBottom: metrics.spacing.m,
   },
   horizontalCard: {
-    width: 280,
+    width: 300,
   },
   employerContent: {
     flex: 1,
-    justifyContent: 'center',
+    marginTop: -40,
   },
-  emptyState: {
+  quickActionsRow: {
+    paddingHorizontal: metrics.spacing.l,
+    gap: metrics.spacing.l,
+    paddingBottom: metrics.spacing.m,
+  },
+  quickAction: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: metrics.spacing.xxl,
-    borderRadius: metrics.radiusCard,
+    width: 72,
+  },
+  quickActionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: metrics.spacing.s,
     ...metrics.shadows.soft,
   },
-  emptyTitle: {
+  quickActionLabel: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h3,
-    color: colors.textPrimary,
-    marginTop: metrics.spacing.m,
-  },
-  emptySubtitle: {
-    fontFamily: typography.fontFamily.regular,
-    fontSize: typography.sizes.body1,
+    fontSize: typography.sizes.caption,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: metrics.spacing.s,
-    marginBottom: metrics.spacing.l,
   },
-  postJobBtn: {
-    paddingHorizontal: metrics.spacing.xl,
-  }
+  quickActionBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.surface,
+  },
+  quickActionBadgeText: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: 10,
+    color: colors.surface,
+  },
 });
+
+

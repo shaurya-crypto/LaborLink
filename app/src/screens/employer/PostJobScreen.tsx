@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Toast from 'react-native-toast-message';
 import { ScreenContainer, Button, TextInput } from '@/components';
 import { colors, typography, metrics } from '@/theme';
 import Icon from 'react-native-vector-icons/Feather';
@@ -10,7 +12,7 @@ const CATEGORIES = ['Electrician', 'Plumber', 'Carpenter', 'Welder', 'Painter', 
 
 export const PostJobScreen = () => {
   const navigation = useNavigation();
-  const { postJob } = useEmployerStore();
+  const { createJob } = useEmployerStore();
   const [step, setStep] = useState(1);
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -37,15 +39,15 @@ export const PostJobScreen = () => {
 
   const handleNext = () => {
     if (step === 1 && (!title || !category || !description)) {
-      Alert.alert('Required', 'Please fill all fields in this step.');
+      Toast.show({ type: 'error', text1: 'Required', text2: 'Please fill all fields in this step.' });
       return;
     }
     if (step === 2 && (!workersCount || !location || !experience)) {
-      Alert.alert('Required', 'Please fill all fields in this step.');
+      Toast.show({ type: 'error', text1: 'Required', text2: 'Please fill all fields in this step.' });
       return;
     }
     if (step === 3 && !salary) {
-      Alert.alert('Required', 'Please fill salary details.');
+      Toast.show({ type: 'error', text1: 'Required', text2: 'Please fill salary details.' });
       return;
     }
     animateLayout();
@@ -54,13 +56,18 @@ export const PostJobScreen = () => {
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    await postJob({
+    const jobData = {
       title, category, description, workersCount, location, salary, salaryType, experience, isUrgent
-    });
-    setIsPublishing(false);
-    Alert.alert('Success', 'Job posted successfully!', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+    };
+    try {
+      await createJob(jobData);
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Job posted successfully!' });
+      navigation.goBack();
+    } catch {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to post job.' });
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const renderStepIndicator = () => (
@@ -90,23 +97,33 @@ export const PostJobScreen = () => {
 
   return (
     <ScreenContainer backgroundColor={colors.background}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => {
-            if (step > 1) {
-              animateLayout();
-              setStep(step - 1);
-            } else {
-              navigation.goBack();
-            }
-          }} 
-          style={styles.backBtn}
-        >
-          <Icon name="arrow-left" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post a Job</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <LinearGradient
+        colors={colors.gradients.primary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (step > 1) {
+                animateLayout();
+                setStep(step - 1);
+              } else {
+                navigation.goBack();
+              }
+            }} 
+            style={styles.backBtn}
+          >
+            <Icon name="arrow-left" size={24} color={colors.surface} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitleWhite}>Post a Job</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerSubtitleWhite}>Step {step} of 4</Text>
+        </View>
+      </LinearGradient>
 
       {renderStepIndicator()}
 
@@ -133,7 +150,7 @@ export const PostJobScreen = () => {
               onChangeText={setDescription}
               multiline
               numberOfLines={4}
-              style={{ height: 100, textAlignVertical: 'top' }}
+              style={{ minHeight: 120 }}
             />
           </View>
         )}
@@ -249,48 +266,71 @@ export const PostJobScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: metrics.spacing.l,
-    paddingVertical: metrics.spacing.m,
+    marginBottom: metrics.spacing.l,
+  },
+  headerTitleWhite: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: typography.sizes.h2,
+    color: colors.surface,
+  },
+  headerContent: {
+    paddingHorizontal: metrics.spacing.l,
+    alignItems: 'center',
+  },
+  headerSubtitleWhite: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.sizes.body1,
+    color: 'rgba(255,255,255,0.9)',
   },
   backBtn: {
-    padding: metrics.spacing.xs,
-  },
-  headerTitle: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h3,
-    color: colors.textPrimary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stepIndicator: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: metrics.spacing.m,
+    paddingVertical: metrics.spacing.l,
     paddingHorizontal: metrics.spacing.xl,
+    marginTop: -20,
   },
   stepDotContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.border,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    ...metrics.shadows.soft,
   },
   stepDotActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary, // Purple theme for employer actions
   },
   stepLine: {
-    width: 30,
-    height: 2,
+    width: 32,
+    height: 3,
     backgroundColor: colors.border,
     marginHorizontal: 4,
+    borderRadius: 1.5,
   },
   stepLineActive: {
     backgroundColor: colors.primary,
@@ -331,7 +371,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '1A', // 10% opacity
+    backgroundColor: colors.primary + '15',
   },
   chipText: {
     fontFamily: typography.fontFamily.medium,
@@ -340,7 +380,7 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.primary,
-    fontFamily: typography.fontFamily.semiBold,
+    fontFamily: typography.fontFamily.bold,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -357,7 +397,7 @@ const styles = StyleSheet.create({
     marginRight: metrics.spacing.m,
   },
   toggleTitle: {
-    fontFamily: typography.fontFamily.semiBold,
+    fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.body1,
     color: colors.textPrimary,
     marginBottom: 4,
@@ -366,10 +406,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.sizes.caption,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.border,
@@ -393,7 +434,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   reviewCategory: {
-    fontFamily: typography.fontFamily.medium,
+    fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.body1,
     color: colors.primary,
   },
@@ -418,12 +459,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.warning + '1A',
     padding: metrics.spacing.m,
-    borderRadius: metrics.radiusS,
+    borderRadius: metrics.radiusCard,
     marginTop: metrics.spacing.l,
     gap: metrics.spacing.s,
   },
   urgentNoticeText: {
-    fontFamily: typography.fontFamily.medium,
+    fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.body2,
     color: colors.warning,
   },
@@ -441,3 +482,5 @@ const styles = StyleSheet.create({
     width: '100%',
   }
 });
+
+

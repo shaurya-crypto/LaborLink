@@ -1,12 +1,29 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '@/navigation/AuthNavigator';
 import { ScreenContainer, Button } from '@/components';
 import { colors, metrics, typography } from '@/theme';
 import Icon from 'react-native-vector-icons/Feather';
 import { useAppStore } from '@/store/useAppStore';
+
+const LanguageCard = ({ code, label, nativeLabel, selectedLang, setSelectedLang }: any) => {
+  const isSelected = selectedLang === code;
+  return (
+    <TouchableOpacity 
+      style={[styles.card, isSelected && styles.cardSelected]} 
+      onPress={() => setSelectedLang(code)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.cardLeft}>
+        <Icon name="globe" size={24} color={isSelected ? colors.primary : colors.icons} />
+        <View style={styles.textGroup}>
+          <Text style={[styles.label, isSelected && styles.textSelected]}>{label}</Text>
+          <Text style={[styles.nativeLabel, isSelected && styles.textSelected]}>{nativeLabel}</Text>
+        </View>
+      </View>
+      {isSelected && <Icon name="check-circle" size={24} color={colors.primary} />}
+    </TouchableOpacity>
+  );
+};
 
 export const LanguageScreen = () => {
   const [selectedLang, setSelectedLang] = useState<'en' | 'hi'>('en');
@@ -16,25 +33,6 @@ export const LanguageScreen = () => {
     setLanguage(selectedLang);
   };
 
-  const LanguageCard = ({ code, label, nativeLabel }: any) => {
-    const isSelected = selectedLang === code;
-    return (
-      <TouchableOpacity 
-        style={[styles.card, isSelected && styles.cardSelected]} 
-        onPress={() => setSelectedLang(code)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.cardLeft}>
-          <Icon name="globe" size={24} color={isSelected ? colors.primary : colors.icons} />
-          <View style={styles.textGroup}>
-            <Text style={[styles.label, isSelected && styles.textSelected]}>{label}</Text>
-            <Text style={[styles.nativeLabel, isSelected && styles.textSelected]}>{nativeLabel}</Text>
-          </View>
-        </View>
-        {isSelected && <Icon name="check-circle" size={24} color={colors.primary} />}
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <ScreenContainer backgroundColor={colors.surface} style={styles.container}>
@@ -47,8 +45,8 @@ export const LanguageScreen = () => {
       </View>
 
       <View style={styles.content}>
-        <LanguageCard code="en" label="English" nativeLabel="English" />
-        <LanguageCard code="hi" label="Hindi" nativeLabel="हिंदी" />
+        <LanguageCard code="en" label="English" nativeLabel="English" selectedLang={selectedLang} setSelectedLang={setSelectedLang} />
+        <LanguageCard code="hi" label="Hindi" nativeLabel="हिंदी" selectedLang={selectedLang} setSelectedLang={setSelectedLang} />
       </View>
 
       <View style={styles.footer}>

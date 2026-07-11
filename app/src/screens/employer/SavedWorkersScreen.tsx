@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, FlatList, Platform } from 'react-native';
 import { ScreenContainer, WorkerCard, EmptyState } from '@/components';
 import { colors, typography, metrics } from '@/theme';

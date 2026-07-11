@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+﻿import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScreenContainer, EmptyState, StatusBadge } from '@/components';
+import { ScreenContainer, EmptyState, StatusBadge, LoadingSkeleton } from '@/components';
 import { colors, metrics, typography } from '@/theme';
 import { useJobStore } from '@/store/useJobStore';
 import { ApplicationStatus, Application } from '@/models/Job';
@@ -16,9 +16,17 @@ export const ApplicationsScreen = () => {
   const { applications, loadingApplications, fetchApplications } = useJobStore();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [fetchApplications]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchApplications();
+    setRefreshing(false);
+  };
 
   const filteredApps = applications.filter(app => app.status === activeTab);
 
@@ -93,8 +101,14 @@ export const ApplicationsScreen = () => {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {filteredApps.length === 0 ? (
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        {loadingApplications && !refreshing ? (
+          <LoadingSkeleton type="jobCard" />
+        ) : filteredApps.length === 0 ? (
           <EmptyState 
             icon="file-text" 
             title={`No ${activeTab} Applications`} 

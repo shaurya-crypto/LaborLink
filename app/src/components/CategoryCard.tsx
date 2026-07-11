@@ -1,5 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { colors, typography, metrics } from '@/theme';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -10,26 +11,44 @@ interface CategoryCardProps {
   selected?: boolean;
 }
 
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
 export const CategoryCard = ({ name, iconName, onPress, selected = false }: CategoryCardProps) => {
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.92, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <TouchableOpacity 
-      style={[styles.container, selected && styles.containerSelected]} 
+    <AnimatedTouchable 
+      style={[styles.container, selected && styles.containerSelected, animatedStyle]} 
       onPress={onPress}
-      activeOpacity={0.8}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
     >
       <View style={[styles.iconWrapper, selected && styles.iconWrapperSelected]}>
-        <Icon name={iconName} size={24} color={selected ? colors.primary : colors.textSecondary} />
+        <Icon name={iconName} size={28} color={selected ? colors.primary : colors.textPrimary} />
       </View>
       <Text style={[styles.name, selected && styles.nameSelected]} numberOfLines={1}>
         {name}
       </Text>
-    </TouchableOpacity>
+    </AnimatedTouchable>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 80,
+    width: 84, // Slightly wider
     alignItems: 'center',
     marginRight: metrics.spacing.m,
   },
@@ -37,9 +56,9 @@ const styles = StyleSheet.create({
     // Optional container styles for selection
   },
   iconWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64, // Larger touch target
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -47,18 +66,17 @@ const styles = StyleSheet.create({
     ...metrics.shadows.soft,
   },
   iconWrapperSelected: {
-    backgroundColor: colors.primary + '1A',
-    borderColor: colors.primary,
-    borderWidth: 1,
+    backgroundColor: colors.primary + '15',
+    ...metrics.shadows.medium, // Glowing shadow for selected
   },
   name: {
     fontFamily: typography.fontFamily.medium,
-    fontSize: typography.sizes.caption,
+    fontSize: typography.sizes.body2, // Larger font
     color: colors.textSecondary,
     textAlign: 'center',
   },
   nameSelected: {
     color: colors.primaryDark,
-    fontFamily: typography.fontFamily.semiBold,
+    fontFamily: typography.fontFamily.bold,
   }
 });

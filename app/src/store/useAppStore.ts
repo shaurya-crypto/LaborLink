@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 type Role = 'worker' | 'employer' | null;

@@ -1,5 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Toast from 'react-native-toast-message';
 import { ScreenContainer, Button } from '@/components';
 import { colors, typography, metrics } from '@/theme';
 import Icon from 'react-native-vector-icons/Feather';
@@ -12,18 +14,33 @@ export const EmployerProfileScreen = () => {
   const { setRole } = useAppStore();
   const { stats } = useEmployerStore();
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{title: string; message: string; action: () => void; isDestructive?: boolean} | null>(null);
+
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: clearAuth }
-    ]);
+    setModalConfig({
+      title: 'Logout',
+      message: 'Are you sure you want to logout of your employer account?',
+      isDestructive: true,
+      action: () => {
+        setModalVisible(false);
+        clearAuth();
+      }
+    });
+    setModalVisible(true);
   };
 
   const handleSwitchAccount = () => {
-    Alert.alert('Switch Account', 'Do you want to switch to a Worker profile?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Switch to Worker', onPress: () => setRole('worker') }
-    ]);
+    setModalConfig({
+      title: 'Switch Account',
+      message: 'Do you want to switch to a Worker profile?',
+      action: () => {
+        setModalVisible(false);
+        setRole('worker');
+        Toast.show({ type: 'success', text1: 'Switched to Worker Profile' });
+      }
+    });
+    setModalVisible(true);
   };
 
   const renderSettingItem = (icon: string, title: string, onPress: () => void, isDestructive = false) => (
@@ -37,52 +54,61 @@ export const EmployerProfileScreen = () => {
   );
 
   return (
-    <ScreenContainer backgroundColor={colors.background} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
-
+    <ScreenContainer backgroundColor={colors.background}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         
-        <View style={styles.profileCard}>
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitials}>{user?.name.substring(0, 2).toUpperCase() || 'EM'}</Text>
+        <LinearGradient
+          colors={colors.gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <Text style={styles.headerTitleWhite}>Employer Profile</Text>
           </View>
-          <Text style={styles.name}>{user?.name || 'Company Owner'}</Text>
-          <Text style={styles.companyName}>Tata Projects Ltd</Text>
-          <View style={styles.locationRow}>
-            <Icon name="map-pin" size={14} color={colors.textSecondary} />
-            <Text style={styles.locationText}>{user?.city || 'Mumbai, Maharashtra'}</Text>
+          
+          <View style={styles.profileCard}>
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitials}>{user?.name.substring(0, 2).toUpperCase() || 'EM'}</Text>
+            </View>
+            <Text style={styles.nameWhite}>{user?.name || 'Company Owner'}</Text>
+            <Text style={styles.companyName}>Tata Projects Ltd</Text>
+            <View style={styles.locationRow}>
+              <Icon name="map-pin" size={14} color={colors.surface} />
+              <Text style={styles.locationTextWhite}>{user?.city || 'Mumbai, Maharashtra'}</Text>
+            </View>
           </View>
-        </View>
+        </LinearGradient>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{stats?.completedJobs || 12}</Text>
-            <Text style={styles.statLabel}>Jobs Posted</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{stats?.workersHired || 4}</Text>
-            <Text style={styles.statLabel}>Workers Hired</Text>
+        <View style={styles.statsWrapper}>
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{stats?.completedJobs || 12}</Text>
+              <Text style={styles.statLabel}>Jobs Posted</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{stats?.workersHired || 4}</Text>
+              <Text style={styles.statLabel}>Workers Hired</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
           <View style={styles.settingsCard}>
-            {renderSettingItem('user', 'Edit Profile', () => {})}
-            {renderSettingItem('briefcase', 'Company Details', () => {})}
-            {renderSettingItem('credit-card', 'Billing & Payments', () => {})}
-            {renderSettingItem('bell', 'Notification Preferences', () => {})}
+            {renderSettingItem('user', 'Edit Profile', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
+            {renderSettingItem('briefcase', 'Company Details', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
+            {renderSettingItem('credit-card', 'Billing & Payments', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
+            {renderSettingItem('bell', 'Notification Preferences', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support & About</Text>
           <View style={styles.settingsCard}>
-            {renderSettingItem('help-circle', 'Help Center', () => {})}
-            {renderSettingItem('file-text', 'Terms & Privacy', () => {})}
+            {renderSettingItem('help-circle', 'Help Center', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
+            {renderSettingItem('file-text', 'Terms & Privacy', () => Toast.show({ type: 'info', text1: 'Coming Soon' }))}
           </View>
         </View>
 
@@ -100,56 +126,83 @@ export const EmployerProfileScreen = () => {
         </View>
 
       </ScrollView>
+
+      {/* Custom Confirmation Bottom Sheet equivalent */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalConfig?.title}</Text>
+            <Text style={styles.modalMessage}>{modalConfig?.message}</Text>
+            <View style={styles.modalActions}>
+              <Button 
+                title="Cancel" 
+                variant="outlined" 
+                onPress={() => setModalVisible(false)} 
+                style={styles.modalBtn} 
+              />
+              <Button 
+                title={modalConfig?.title || 'Confirm'} 
+                onPress={() => modalConfig?.action()} 
+                style={[styles.modalBtn, modalConfig?.isDestructive ? { backgroundColor: colors.error, borderColor: colors.error } : { backgroundColor: colors.primary, borderColor: colors.primary }]} 
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 0,
+  content: {
+    paddingBottom: metrics.spacing.xxl,
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 60,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   header: {
     paddingHorizontal: metrics.spacing.l,
-    paddingTop: Platform.OS === 'ios' ? 0 : metrics.spacing.m,
-    paddingBottom: metrics.spacing.m,
+    marginBottom: metrics.spacing.l,
+    alignItems: 'center',
   },
-  headerTitle: {
+  headerTitleWhite: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h1,
-    color: colors.textPrimary,
-  },
-  content: {
-    paddingHorizontal: metrics.spacing.l,
-    paddingBottom: metrics.spacing.xxl,
+    fontSize: typography.sizes.h2,
+    color: colors.surface,
   },
   profileCard: {
     alignItems: 'center',
-    marginBottom: metrics.spacing.xl,
+    paddingHorizontal: metrics.spacing.l,
   },
   avatarPlaceholder: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: colors.primary + '20',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: metrics.spacing.m,
+    ...metrics.shadows.medium,
   },
   avatarInitials: {
     fontFamily: typography.fontFamily.bold,
     fontSize: 32,
-    color: colors.primaryDark,
+    color: colors.primary,
   },
-  name: {
+  nameWhite: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h2,
-    color: colors.textPrimary,
+    fontSize: typography.sizes.h1,
+    color: colors.surface,
     marginBottom: 4,
   },
   companyName: {
     fontFamily: typography.fontFamily.medium,
     fontSize: typography.sizes.body1,
-    color: colors.primary,
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 8,
   },
   locationRow: {
@@ -157,18 +210,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: metrics.spacing.xs,
   },
-  locationText: {
+  locationTextWhite: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.sizes.body2,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  statsWrapper: {
+    paddingHorizontal: metrics.spacing.l,
+    marginTop: -40,
+    marginBottom: metrics.spacing.xl,
   },
   statsRow: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
     borderRadius: metrics.radiusCard,
     padding: metrics.spacing.m,
-    marginBottom: metrics.spacing.xl,
-    ...metrics.shadows.soft,
+    ...metrics.shadows.medium,
   },
   statBox: {
     flex: 1,
@@ -177,7 +234,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h3,
+    fontSize: typography.sizes.h2,
     color: colors.textPrimary,
     marginBottom: 4,
   },
@@ -192,6 +249,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: metrics.spacing.xl,
+    paddingHorizontal: metrics.spacing.l,
   },
   sectionTitle: {
     fontFamily: typography.fontFamily.bold,
@@ -224,6 +282,7 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     marginTop: metrics.spacing.m,
+    paddingHorizontal: metrics.spacing.l,
     gap: metrics.spacing.l,
   },
   switchBtn: {
@@ -240,5 +299,41 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.body1,
     color: colors.error,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: metrics.spacing.l,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: metrics.radiusCard,
+    padding: metrics.spacing.xl,
+    width: '100%',
+    ...metrics.shadows.medium,
+  },
+  modalTitle: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: typography.sizes.h2,
+    color: colors.textPrimary,
+    marginBottom: metrics.spacing.s,
+  },
+  modalMessage: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.sizes.body1,
+    color: colors.textSecondary,
+    marginBottom: metrics.spacing.xl,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: metrics.spacing.m,
+  },
+  modalBtn: {
+    flex: 1,
   }
 });
+
+

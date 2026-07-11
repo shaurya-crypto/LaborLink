@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Platform } from 'react-native';
-import { ScreenContainer, EmployerStatsCard, QuickActionCard, WorkerCard, LoadingSkeleton } from '@/components';
+import LinearGradient from 'react-native-linear-gradient';
+import { ScreenContainer, EmployerStatsCard, QuickActionCard, WorkerCard, LoadingSkeleton, ActivityCard } from '@/components';
 import { colors, typography, metrics } from '@/theme';
+import { WorkerProfile } from '@/models/User';
 import { useEmployerStore } from '@/store/useEmployerStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useActivityStore } from '@/store/useActivityStore';
+import { useChatStore } from '@/store/useChatStore';
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,65 +18,83 @@ type NavigationProp = NativeStackNavigationProp<MainStackParamList>;
 export const EmployerHomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuthStore();
-  const { stats, recommendedWorkers, loadingDashboard, fetchDashboardData } = useEmployerStore();
+  const { stats, recommendedWorkers, loading, fetchDashboardData } = useEmployerStore();
+  const { todayActivities, initializeActivities } = useActivityStore();
+  const { totalUnread, initializeConversations } = useChatStore();
   
   const [greeting, setGreeting] = useState('Good Morning');
 
   useEffect(() => {
     fetchDashboardData();
+    initializeActivities();
+    initializeConversations();
     
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good Morning');
     else if (hour < 18) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
-  }, []);
+  }, [fetchDashboardData, initializeActivities, initializeConversations]);
 
   return (
     <ScreenContainer backgroundColor={colors.background} style={styles.container}>
-      <View style={styles.topBar}>
-        <View style={styles.greetingHeader}>
-          <Text style={styles.greetingText}>{greeting},</Text>
-          <Text style={styles.name}>{user?.name || 'Employer'}!</Text>
-          <View style={styles.locationContainer}>
-            <Icon name="map-pin" size={14} color={colors.primary} />
-            <Text style={styles.locationText}>{user?.city || 'Mumbai, Maharashtra'}</Text>
+      <LinearGradient
+        colors={colors.gradients.primary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.topBar}>
+          <View style={styles.greetingHeader}>
+            <Text style={styles.greetingText}>{greeting},</Text>
+            <Text style={styles.name}>{user?.name || 'Employer'}!</Text>
+            <View style={styles.locationContainer}>
+              <Icon name="map-pin" size={14} color={colors.surface} />
+              <Text style={styles.locationText}>{user?.city || 'Mumbai, Maharashtra'}</Text>
+            </View>
           </View>
+          <TouchableOpacity 
+            style={styles.notificationBtn} 
+            onPress={() => navigation.navigate('EmployerNotifications')}
+          >
+            <Icon name="bell" size={24} color={colors.surface} />
+            <View style={styles.badge} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.notificationBtn} 
-          onPress={() => navigation.navigate('EmployerNotifications')}
-        >
-          <Icon name="bell" size={24} color={colors.textPrimary} />
-          <View style={styles.badge} />
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loadingDashboard} onRefresh={fetchDashboardData} colors={[colors.primary]} />
+          <RefreshControl refreshing={loading} onRefresh={fetchDashboardData} colors={[colors.primary]} />
         }
       >
         {/* POST JOB CTA */}
-        <TouchableOpacity style={styles.primaryCta} onPress={() => navigation.navigate('PostJob')} activeOpacity={0.9}>
-          <View style={styles.ctaContent}>
-            <Text style={styles.ctaTitle}>Post a New Job</Text>
-            <Text style={styles.ctaSubtitle}>Find skilled workers in minutes</Text>
-          </View>
-          <View style={styles.ctaIconWrapper}>
-            <Icon name="plus" size={28} color={colors.primary} />
-          </View>
+        <TouchableOpacity style={styles.ctaWrapper} onPress={() => navigation.navigate('PostJob')} activeOpacity={0.9}>
+          <LinearGradient
+            colors={colors.gradients.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.primaryCta}
+          >
+            <View style={styles.ctaContent}>
+              <Text style={styles.ctaTitle}>Post a New Job</Text>
+              <Text style={styles.ctaSubtitle}>Find skilled workers in minutes</Text>
+            </View>
+            <View style={styles.ctaIconWrapper}>
+              <Icon name="plus" size={28} color={colors.primary} />
+            </View>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* QUICK STATS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Overview</Text>
-          {loadingDashboard && !stats ? (
+          {loading && !stats ? (
              <View style={styles.statsRow}>
-               <LoadingSkeleton width={100} height={80} style={{marginRight: metrics.spacing.m, borderRadius: metrics.radiusCard}} />
-               <LoadingSkeleton width={100} height={80} style={{marginRight: metrics.spacing.m, borderRadius: metrics.radiusCard}} />
-               <LoadingSkeleton width={100} height={80} style={{borderRadius: metrics.radiusCard}} />
+               <LoadingSkeleton width={100} height={80} style={styles.skeletonCardMargin} />
+               <LoadingSkeleton width={100} height={80} style={styles.skeletonCardMargin} />
+               <LoadingSkeleton width={100} height={80} style={styles.skeletonCard} />
              </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsRow}>
@@ -106,9 +128,16 @@ export const EmployerHomeScreen = () => {
               onPress={() => navigation.navigate('EmployerTabs' as any, { screen: 'JobsTab' })} 
             />
             <QuickActionCard 
+              title="Chats" 
+              iconName="message-circle" 
+              color={colors.info} 
+              onPress={() => navigation.navigate('EmployerConversationList')} 
+              badge={totalUnread > 0 ? totalUnread : undefined}
+            />
+            <QuickActionCard 
               title="Saved" 
               iconName="bookmark" 
-              color={colors.info} 
+              color={colors.primary} 
               onPress={() => navigation.navigate('EmployerTabs' as any, { screen: 'SavedTab' })} 
             />
           </ScrollView>
@@ -123,10 +152,10 @@ export const EmployerHomeScreen = () => {
             </TouchableOpacity>
           </View>
           
-          {loadingDashboard && recommendedWorkers.length === 0 ? (
+          {loading && recommendedWorkers.length === 0 ? (
             <LoadingSkeleton width="100%" height={160} style={{borderRadius: metrics.radiusCard}} />
           ) : (
-            recommendedWorkers.slice(0, 3).map((worker, index) => (
+            recommendedWorkers.slice(0, 3).map((worker: WorkerProfile, index: number) => (
               <WorkerCard 
                 key={worker.id} 
                 worker={worker} 
@@ -137,6 +166,21 @@ export const EmployerHomeScreen = () => {
           )}
         </View>
 
+        {/* RECENT ACTIVITY */}
+        {todayActivities.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Activity')}>
+                <Text style={styles.seeAll}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            {todayActivities.slice(0, 3).map(activity => (
+              <ActivityCard key={activity.id} activity={activity} onPress={() => navigation.navigate('Activity')} />
+            ))}
+          </View>
+        )}
+
       </ScrollView>
     </ScreenContainer>
   );
@@ -146,13 +190,18 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 0,
   },
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: metrics.spacing.m,
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: metrics.spacing.l,
-    paddingTop: Platform.OS === 'ios' ? 0 : metrics.spacing.m,
-    marginBottom: metrics.spacing.l,
   },
   greetingHeader: {
     flex: 1,
@@ -160,13 +209,13 @@ const styles = StyleSheet.create({
   greetingText: {
     fontFamily: typography.fontFamily.medium,
     fontSize: typography.sizes.body2,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 2,
   },
   name: {
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.h2,
-    color: colors.textPrimary,
+    color: colors.surface,
     marginBottom: 4,
   },
   locationContainer: {
@@ -177,16 +226,15 @@ const styles = StyleSheet.create({
   locationText: {
     fontFamily: typography.fontFamily.medium,
     fontSize: typography.sizes.caption,
-    color: colors.textSecondary,
+    color: colors.surface,
   },
   notificationBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...metrics.shadows.soft,
   },
   badge: {
     position: 'absolute',
@@ -203,15 +251,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: metrics.spacing.l,
     paddingBottom: metrics.spacing.xxl,
   },
+  ctaWrapper: {
+    marginBottom: metrics.spacing.xl,
+    ...metrics.shadows.medium,
+  },
   primaryCta: {
-    backgroundColor: colors.primaryDark,
     borderRadius: metrics.radiusCard,
     padding: metrics.spacing.xl,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: metrics.spacing.xl,
-    ...metrics.shadows.medium,
   },
   ctaContent: {
     flex: 1,
@@ -225,7 +274,7 @@ const styles = StyleSheet.create({
   ctaSubtitle: {
     fontFamily: typography.fontFamily.medium,
     fontSize: typography.sizes.body2,
-    color: colors.surface + 'CC',
+    color: 'rgba(255,255,255,0.9)',
   },
   ctaIconWrapper: {
     width: 48,
@@ -248,7 +297,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.bold,
     fontSize: typography.sizes.h3,
     color: colors.textPrimary,
-    marginBottom: metrics.spacing.m,
   },
   seeAll: {
     fontFamily: typography.fontFamily.semiBold,
@@ -260,5 +308,14 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     paddingRight: metrics.spacing.m,
+  },
+  skeletonCardMargin: {
+    marginRight: metrics.spacing.m, 
+    borderRadius: metrics.radiusCard,
+  },
+  skeletonCard: {
+    borderRadius: metrics.radiusCard,
   }
 });
+
+

@@ -1,81 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { ScreenContainer, ApplicantCard, EmptyState, LoadingSkeleton } from '@/components';
+﻿import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Toast from 'react-native-toast-message';
+import { ScreenContainer, ApplicantCard, EmptyState, LoadingSkeleton, Button } from '@/components';
 import { colors, typography, metrics } from '@/theme';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
-import { MainStackParamList } from '@/navigation/MainNavigator';
-import { mockDataService } from '@/services/MockDataService';
 import { Applicant } from '@/models/Job';
+import { MainStackParamList } from '@/navigation/MainNavigator';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEmployerStore } from '@/store/useEmployerStore';
 
-type ApplicantsRouteProp = RouteProp<MainStackParamList, 'Applicants'>;
+
 type NavigationProp = NativeStackNavigationProp<MainStackParamList>;
 
 export const ApplicantsScreen = () => {
-  const route = useRoute<ApplicantsRouteProp>();
-  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProp<MainStackParamList, 'Applicants'>>();
   const { jobId } = route.params;
-  const { saveWorker } = useEmployerStore();
+  const { applicants: storeApplicants, hireWorker, rejectWorker, shortlistWorker, fetchJobApplicants, saveWorker } = useEmployerStore();
+  const applicants = storeApplicants[jobId] || [];
+  const loading = useEmployerStore(state => state.loading);
+  const navigation = useNavigation<NavigationProp>();
 
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{title: string; message: string; action: () => void} | null>(null);
 
   useEffect(() => {
-    loadApplicants();
-  }, [jobId]);
-
-  const loadApplicants = async () => {
-    setLoading(true);
-    const data = await mockDataService.getJobApplicants(jobId);
-    setApplicants(data);
-    setLoading(false);
-  };
+    fetchJobApplicants(jobId);
+  }, [jobId, fetchJobApplicants]);
 
   const handleHire = (applicant: Applicant) => {
-    Alert.alert(
-      'Hire Worker',
-      `Are you sure you want to hire ${applicant.worker.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Hire', 
-          style: 'default',
-          onPress: async () => {
-            await mockDataService.hireApplicant(applicant.id);
-            setApplicants(prev => prev.map(a => a.id === applicant.id ? { ...a, status: 'Accepted' } : a));
-            Alert.alert('Success', `${applicant.worker.name} has been hired!`);
-          }
-        }
-      ]
-    );
+    setModalConfig({
+      title: 'Hire Worker',
+      message: `Are you sure you want to hire ${applicant.worker.name}?`,
+      action: async () => {
+        setModalVisible(false);
+        await hireWorker(jobId, applicant.id);
+        Toast.show({ type: 'success', text1: 'Success', text2: `${applicant.worker.name} has been hired!` });
+      }
+    });
+    setModalVisible(true);
   };
 
-  const handleReject = (applicantId: string) => {
-    setApplicants(prev => prev.map(a => a.id === applicantId ? { ...a, status: 'Rejected' } : a));
+  const handleReject = async (applicantId: string) => {
+    await rejectWorker(jobId, applicantId);
+    Toast.show({ type: 'info', text1: 'Applicant Rejected' });
   };
 
-  const handleShortlist = (applicant: Applicant) => {
+  const handleShortlist = async (applicant: Applicant) => {
     saveWorker(applicant.worker);
-    setApplicants(prev => prev.map(a => a.id === applicant.id ? { ...a, status: 'Interview' } : a));
-    Alert.alert('Shortlisted', `${applicant.worker.name} has been added to your Saved Workers.`);
+    await shortlistWorker(jobId, applicant.id);
+    Toast.show({ type: 'success', text1: 'Shortlisted', text2: `${applicant.worker.name} has been added to your Saved Workers.` });
   };
 
   return (
     <ScreenContainer backgroundColor={colors.background}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Applicants</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <LinearGradient
+        colors={colors.gradients.primary} // Purple theme for employer actions
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={24} color={colors.surface} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitleWhite}>Applicants</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerSubtitleWhite}>{loading ? 'Loading...' : `${applicants.length} Total Applicants`}</Text>
+        </View>
+      </LinearGradient>
 
       {loading ? (
-        <View style={styles.listContainer}>
-          <LoadingSkeleton type="custom" width="100%" height={200} style={{marginBottom: 16, borderRadius: metrics.radiusCard}} />
-          <LoadingSkeleton type="custom" width="100%" height={200} style={{borderRadius: metrics.radiusCard}} />
+        <View style={styles.loadingContainer}>
+          <LoadingSkeleton type="custom" width="100%" height={200} style={styles.skeletonSpacer} />
+          <LoadingSkeleton type="custom" width="100%" height={200} style={styles.skeletonCard} />
         </View>
       ) : (
         <FlatList
@@ -101,29 +102,124 @@ export const ApplicantsScreen = () => {
           }
         />
       )}
+
+      {/* Confirmation Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalConfig?.title}</Text>
+            <Text style={styles.modalMessage}>{modalConfig?.message}</Text>
+            <View style={styles.modalActions}>
+              <Button 
+                title="Cancel" 
+                variant="outlined" 
+                onPress={() => setModalVisible(false)} 
+                style={styles.modalBtn} 
+              />
+              <Button 
+                title="Confirm" 
+                onPress={() => modalConfig?.action()} 
+                style={[styles.modalBtn, { backgroundColor: colors.primary, borderColor: colors.primary }]} 
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: metrics.spacing.l,
-    paddingVertical: metrics.spacing.m,
+    marginBottom: metrics.spacing.m,
   },
   backBtn: {
-    padding: metrics.spacing.xs,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerTitle: {
+  headerTitleWhite: {
     fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h3,
-    color: colors.textPrimary,
+    fontSize: typography.sizes.h2,
+    color: colors.surface,
+  },
+  headerContent: {
+    paddingHorizontal: metrics.spacing.l,
+    alignItems: 'center',
+    marginBottom: metrics.spacing.s,
+  },
+  headerSubtitleWhite: {
+    fontFamily: typography.fontFamily.medium,
+    fontSize: typography.sizes.body1,
+    color: 'rgba(255,255,255,0.9)',
   },
   listContainer: {
     padding: metrics.spacing.l,
     paddingBottom: metrics.spacing.xxl,
     flexGrow: 1,
-  }
+  },
+  loadingContainer: {
+    padding: metrics.spacing.l,
+    paddingTop: metrics.spacing.l,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: metrics.spacing.l,
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: metrics.radiusCard,
+    padding: metrics.spacing.xl,
+    width: '100%',
+    ...metrics.shadows.medium,
+  },
+  modalTitle: {
+    fontFamily: typography.fontFamily.bold,
+    fontSize: typography.sizes.h2,
+    color: colors.textPrimary,
+    marginBottom: metrics.spacing.s,
+  },
+  modalMessage: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.sizes.body1,
+    color: colors.textSecondary,
+    marginBottom: metrics.spacing.xl,
+    lineHeight: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: metrics.spacing.m,
+  },
+  modalBtn: {
+    flex: 1,
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  skeletonSpacer: {
+    marginBottom: 16, 
+    borderRadius: metrics.radiusCard,
+  },
+  skeletonCard: {
+    borderRadius: metrics.radiusCard,
+  },
 });
+
+

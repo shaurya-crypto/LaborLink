@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ScreenContainer, Button, TextInput } from '@/components';
+import { Button, TextInput } from '@/components';
 import { colors, metrics, typography } from '@/theme';
-import Icon from 'react-native-vector-icons/Feather';
+import { Briefcase, User, Building, MapPin } from 'lucide-react-native';
 import { useAuthStore } from '@/store/useAuthStore';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeInDown, FadeInUp, Layout, } from 'react-native-reanimated';
+
+const { height } = Dimensions.get('window');
 
 export const EmployerSetupScreen = () => {
   const navigation = useNavigation<any>();
@@ -25,82 +29,107 @@ export const EmployerSetupScreen = () => {
   };
 
   return (
-    <ScreenContainer backgroundColor={colors.surface} scrollable style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.iconWrapper}>
-          <Icon name="briefcase" size={40} color={colors.primary} />
-        </View>
-        <Text style={styles.title}>Employer Setup</Text>
-        <Text style={styles.subtitle}>Let's set up your business profile before you post your first job.</Text>
-      </View>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={colors.gradients.surface}
+        style={StyleSheet.absoluteFill}
+      />
+      
+      <Animated.ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
+            <View style={styles.iconWrapper}>
+              <Briefcase size={36} color={colors.primary} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.title}>Employer Setup</Text>
+            <Text style={styles.subtitle}>Let's set up your business profile before you post your first job.</Text>
+          </Animated.View>
 
-      <View style={styles.form}>
-        <TextInput
-          label="Your Name"
-          placeholder="e.g. John Doe"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          label="Business / Company Name (Optional)"
-          placeholder="e.g. Doe Construction"
-          value={businessName}
-          onChangeText={setBusinessName}
-        />
-        <TextInput
-          label="Business Location (Optional)"
-          placeholder="e.g. Downtown Office"
-          value={businessLocation}
-          onChangeText={setBusinessLocation}
-        />
-      </View>
+          <Animated.View entering={FadeInUp.delay(300).duration(600).springify()} layout={Layout.springify()} style={styles.form}>
+            <TextInput
+              label="Your Name"
+              value={name}
+              onChangeText={setName}
+              leftIcon={<User size={20} color={colors.textSecondary} strokeWidth={1.5} />}
+            />
+            <TextInput
+              label="Company Name (Optional)"
+              value={businessName}
+              onChangeText={setBusinessName}
+              leftIcon={<Building size={20} color={colors.textSecondary} strokeWidth={1.5} />}
+            />
+            <TextInput
+              label="Business Location (Optional)"
+              value={businessLocation}
+              onChangeText={setBusinessLocation}
+              leftIcon={<MapPin size={20} color={colors.textSecondary} strokeWidth={1.5} />}
+            />
+          </Animated.View>
 
-      <View style={styles.footer}>
-        <Button 
-          title="Complete Setup" 
-          onPress={handleFinish} 
-          disabled={!name.trim()}
-        />
-      </View>
-    </ScreenContainer>
+          <Animated.View entering={FadeInUp.delay(500).duration(600).springify()} layout={Layout.springify()} style={styles.footer}>
+            <Button 
+              title="Complete Setup" 
+              onPress={handleFinish} 
+              disabled={!name.trim()}
+            />
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: metrics.spacing.l,
-    justifyContent: 'space-between',
+    paddingTop: height * 0.1,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginTop: metrics.spacing.xxl,
-    marginBottom: metrics.spacing.xl,
+    marginBottom: metrics.spacing.xxl,
   },
   iconWrapper: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.secondaryBackground,
+    backgroundColor: colors.glass,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: metrics.spacing.l,
+    marginBottom: metrics.spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...metrics.shadows.glow,
   },
   title: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h2,
+    fontFamily: typography.fontFamily.extraBold,
+    fontSize: typography.sizes.h1,
     color: colors.textPrimary,
-    marginBottom: metrics.spacing.xs,
+    marginBottom: metrics.spacing.s,
+    letterSpacing: -1,
   },
   subtitle: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.sizes.body1,
     color: colors.textSecondary,
     textAlign: 'center',
+    letterSpacing: -0.2,
+    lineHeight: 24,
+    paddingHorizontal: metrics.spacing.m,
   },
   form: {
-    flex: 1,
+    marginBottom: metrics.spacing.xxl,
   },
   footer: {
-    paddingBottom: metrics.spacing.l,
+    paddingBottom: metrics.spacing.xl,
   }
 });

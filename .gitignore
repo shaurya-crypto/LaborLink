@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# React Native / Expo
+app/android/
+app/ios/
+app/.expo/
+app/expo-env.d.ts
+
+# Environment files
+.env
+.env.*
+
+# Agents & skills
+.agents/
+skills-lock.json
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

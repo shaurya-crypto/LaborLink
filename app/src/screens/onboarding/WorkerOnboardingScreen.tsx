@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { ScreenContainer, Button, TextInput } from '@/components';
+﻿import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Button, TextInput } from '@/components';
 import { colors, metrics, typography } from '@/theme';
-import Icon from 'react-native-vector-icons/Feather';
+import { ChevronLeft, Camera, User, MapPin } from 'lucide-react-native';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
+
+const { height } = Dimensions.get('window');
+
+const SelectableChip = ({ label, selected, onSelect, styles }: any) => (
+  <TouchableOpacity onPress={onSelect} activeOpacity={0.8}>
+    <Animated.View style={[styles.chip, selected && styles.chipSelected]} layout={Layout.springify()}>
+      <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>{label}</Text>
+    </Animated.View>
+  </TouchableOpacity>
+);
 
 export const WorkerOnboardingScreen = () => {
   const { user, updateProfile } = useAuthStore();
@@ -37,40 +49,48 @@ export const WorkerOnboardingScreen = () => {
     }
   };
 
-  const SelectableChip = ({ label, selected, onSelect }: any) => (
-    <TouchableOpacity 
-      style={[styles.chip, selected && styles.chipSelected]} 
-      onPress={onSelect}
-      activeOpacity={0.8}
-    >
-      <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>{label}</Text>
-    </TouchableOpacity>
-  );
+
 
   return (
-    <ScreenContainer backgroundColor={colors.surface} style={styles.container}>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={colors.gradients.surface}
+        style={StyleSheet.absoluteFill}
+      />
+      
       <View style={styles.header}>
         <View style={styles.headerTop}>
           {step > 1 ? (
             <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-              <Icon name="chevron-left" size={24} color={colors.textPrimary} />
+              <ChevronLeft size={28} color={colors.textPrimary} strokeWidth={2} />
             </TouchableOpacity>
           ) : <View style={styles.backBtnPlaceholder} />}
           <Text style={styles.stepText}>{step} of {totalSteps}</Text>
         </View>
         <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: `${(step / totalSteps) * 100}%` }]} />
+          <Animated.View style={[styles.progressBar, { width: `${(step / totalSteps) * 100}%` }]} layout={Layout.springify()}>
+            <LinearGradient
+              colors={[colors.secondaryBrand, colors.primary, colors.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <Animated.ScrollView 
+        contentContainerStyle={styles.content} 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+      >
         {step === 1 && (
-          <View>
+          <Animated.View entering={FadeInRight.duration(400)} exiting={FadeOutLeft.duration(300)}>
             <Text style={styles.title}>Confirm your details</Text>
             <Text style={styles.subtitle}>Make sure your name and location are correct.</Text>
             
             <TouchableOpacity style={styles.photoPlaceholder} activeOpacity={0.8}>
-              <Icon name="camera" size={32} color={colors.icons} />
+              <Camera size={32} color={colors.textSecondary} strokeWidth={1.5} />
               <Text style={styles.photoText}>Add Photo</Text>
             </TouchableOpacity>
             
@@ -80,72 +100,75 @@ export const WorkerOnboardingScreen = () => {
 
             <TextInput
               label="Full Name"
-              placeholder="Enter your full name"
               value={name}
               onChangeText={setName}
+              leftIcon={<User size={20} color={colors.textSecondary} strokeWidth={1.5} />}
             />
             <TextInput
               label="City"
-              placeholder="Your city"
               value={city || ''}
-              editable={false} // Managed by LocationPermissionScreen, ideally editable here but keep it simple
+              editable={false} 
+              leftIcon={<MapPin size={20} color={colors.textSecondary} strokeWidth={1.5} />}
             />
-          </View>
+          </Animated.View>
         )}
 
         {step === 2 && (
-          <View>
+          <Animated.View entering={FadeInRight.duration(400)} exiting={FadeOutLeft.duration(300)}>
             <Text style={styles.title}>What is your occupation?</Text>
             <Text style={styles.subtitle}>Select the primary work you do.</Text>
             <View style={styles.chipGroup}>
-              {occupations.map(opt => (
-                <SelectableChip
-                  key={opt}
-                  label={opt}
-                  selected={occupation === opt}
-                  onSelect={() => setOccupation(opt)}
+              {occupations.map(occ => (
+                <SelectableChip 
+                  key={occ} 
+                  label={occ} 
+                  selected={occupation === occ} 
+                  onSelect={() => setOccupation(occ)}
+                  styles={styles} 
                 />
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {step === 3 && (
-          <View>
+          <Animated.View entering={FadeInRight.duration(400)} exiting={FadeOutLeft.duration(300)}>
             <Text style={styles.title}>How much experience do you have?</Text>
             <Text style={styles.subtitle}>Employers look for this to match you with the right jobs.</Text>
             <View style={styles.chipGroup}>
-              {experiences.map(opt => (
-                <SelectableChip
-                  key={opt}
-                  label={opt}
-                  selected={experience === opt}
-                  onSelect={() => setExperience(opt)}
+              {experiences.map(exp => (
+                <SelectableChip 
+                  key={exp} 
+                  label={exp} 
+                  selected={experience === exp} 
+                  onSelect={() => setExperience(exp)}
+                  styles={styles}
                 />
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {step === 4 && (
-          <View>
-            <Text style={styles.title}>What is your current availability?</Text>
+          <Animated.View entering={FadeInRight.duration(400)} exiting={FadeOutLeft.duration(300)}>
+            <Text style={styles.title}>What is your availability?</Text>
             <Text style={styles.subtitle}>Let employers know if you are ready to work today.</Text>
             <View style={styles.chipGroup}>
-              {availabilities.map(opt => (
-                <SelectableChip
-                  key={opt}
-                  label={opt}
-                  selected={availability === opt}
-                  onSelect={() => setAvailability(opt)}
+              {availabilities.map(avl => (
+                <SelectableChip 
+                  key={avl} 
+                  label={avl} 
+                  selected={availability === avl} 
+                  onSelect={() => setAvailability(avl)}
+                  styles={styles}
                 />
               ))}
             </View>
-          </View>
+          </Animated.View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
-      <View style={styles.footer}>
+      <Animated.View layout={Layout.springify()} style={styles.footer}>
         <Button 
           title={step === totalSteps ? 'Complete Profile' : 'Continue'} 
           onPress={handleNext} 
@@ -156,45 +179,51 @@ export const WorkerOnboardingScreen = () => {
             (step === 4 && !availability)
           }
         />
-      </View>
-    </ScreenContainer>
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: metrics.spacing.l,
+    backgroundColor: colors.background,
   },
   header: {
-    marginTop: metrics.spacing.m,
-    marginBottom: metrics.spacing.xl,
+    padding: metrics.spacing.l,
+    paddingTop: height * 0.08,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: metrics.spacing.m,
+    marginBottom: metrics.spacing.xl,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
-    marginLeft: -8,
+    alignItems: 'center',
+    marginLeft: -4,
   },
   backBtnPlaceholder: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
   },
   stepText: {
-    fontFamily: typography.fontFamily.medium,
-    fontSize: typography.sizes.body2,
+    fontFamily: typography.fontFamily.semiBold,
+    fontSize: typography.sizes.body1,
     color: colors.textSecondary,
+    letterSpacing: -0.2,
   },
   progressContainer: {
-    height: 6,
-    backgroundColor: colors.divider,
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: colors.glass,
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressBar: {
@@ -203,37 +232,40 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+    padding: metrics.spacing.l,
     paddingBottom: metrics.spacing.xxl,
   },
   title: {
-    fontFamily: typography.fontFamily.bold,
-    fontSize: typography.sizes.h2,
+    fontFamily: typography.fontFamily.extraBold,
+    fontSize: typography.sizes.h1,
     color: colors.textPrimary,
     marginBottom: metrics.spacing.xs,
+    letterSpacing: -1,
   },
   subtitle: {
     fontFamily: typography.fontFamily.regular,
     fontSize: typography.sizes.body1,
     color: colors.textSecondary,
     marginBottom: metrics.spacing.xl,
-    lineHeight: 24,
+    letterSpacing: -0.2,
   },
   photoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.secondaryBackground,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: colors.glass,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: metrics.spacing.xl,
     borderWidth: 1,
-    borderColor: colors.divider,
+    borderColor: colors.border,
     borderStyle: 'dashed',
+    ...metrics.shadows.glow,
   },
   photoText: {
     fontFamily: typography.fontFamily.medium,
-    fontSize: 10,
+    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 8,
   },
@@ -243,26 +275,26 @@ const styles = StyleSheet.create({
     marginTop: -metrics.spacing.m,
   },
   skipPhotoText: {
-    fontFamily: typography.fontFamily.medium,
+    fontFamily: typography.fontFamily.semiBold,
     fontSize: typography.sizes.body2,
     color: colors.primary,
   },
   chipGroup: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: metrics.spacing.s,
+    gap: metrics.spacing.m,
   },
   chip: {
-    paddingHorizontal: metrics.spacing.m,
+    paddingHorizontal: metrics.spacing.l,
     paddingVertical: metrics.spacing.m,
     borderRadius: metrics.radiusPill,
-    borderWidth: 1.5,
-    borderColor: colors.divider,
-    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.glass,
   },
   chipSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '1A', // 10% opacity
+    backgroundColor: colors.primaryGlow,
   },
   chipLabel: {
     fontFamily: typography.fontFamily.medium,
@@ -270,11 +302,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   chipLabelSelected: {
-    color: colors.primaryDark,
+    color: colors.primary,
+    fontFamily: typography.fontFamily.semiBold,
   },
   footer: {
-    paddingBottom: metrics.spacing.l,
-    paddingTop: metrics.spacing.m,
-    backgroundColor: colors.surface,
+    padding: metrics.spacing.l,
+    paddingBottom: metrics.spacing.xl,
   }
 });

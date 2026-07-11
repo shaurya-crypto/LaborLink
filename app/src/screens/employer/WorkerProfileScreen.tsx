@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { ScreenContainer, StatusBadge, Button } from '@/components';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { ScreenContainer, StatusBadge, Button, TrustBadge } from '@/components';
 import { colors, typography, metrics } from '@/theme';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+
 import Icon from 'react-native-vector-icons/Feather';
 import { MainStackParamList } from '@/navigation/MainNavigator';
-import { mockDataService } from '@/services/MockDataService';
 import { WorkerProfile } from '@/models/User';
 import { useEmployerStore } from '@/store/useEmployerStore';
+import { useChatStore } from '@/store/useChatStore';
 
 type WorkerProfileRouteProp = RouteProp<MainStackParamList, 'WorkerProfile'>;
 
@@ -22,11 +24,27 @@ export const WorkerProfileScreen = () => {
 
   useEffect(() => {
     // In a real app we'd fetch the specific worker.
-    // For mock, we'll find them via search or nearby (hacky way to get the mock object).
+    
     const loadWorker = async () => {
-      const all = await mockDataService.getNearbyWorkers();
-      const w = all.find(x => x.id === workerId) || all[0];
-      setWorker(w);
+      const { recommendedWorkers, savedWorkers, applicants } = useEmployerStore.getState();
+      
+      let foundWorker = recommendedWorkers.find(w => w.id === workerId) || savedWorkers.find(w => w.id === workerId);
+      
+      if (!foundWorker) {
+        for (const jobId in applicants) {
+          const app = applicants[jobId].find(a => a.worker.id === workerId);
+          if (app) {
+            foundWorker = app.worker;
+            break;
+          }
+        }
+      }
+
+      if (foundWorker) {
+        setWorker(foundWorker);
+      } else {
+        Toast.show({ type: 'error', text1: 'Not Found', text2: 'Could not load worker details.' });
+      }
     };
     loadWorker();
   }, [workerId]);
@@ -38,11 +56,11 @@ export const WorkerProfileScreen = () => {
   };
 
   const handleHire = () => {
-    Alert.alert(
-      'Hire Request Sent',
-      `An offer has been sent to ${worker?.name}. You will be notified when they accept.`,
-      [{ text: 'OK' }]
-    );
+    Toast.show({
+      type: 'success',
+      text1: 'Hire Request Sent',
+      text2: `An offer has been sent to ${worker?.name}. You will be notified when they accept.`,
+    });
   };
 
   if (!worker) return <ScreenContainer backgroundColor={colors.background}><View /></ScreenContainer>;
@@ -121,9 +139,41 @@ export const WorkerProfileScreen = () => {
             </View>
           </View>
         </View>
+
+        {/* Trust Indicators */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Trust & Verification</Text>
+          <View style={styles.trustRow}>
+            <TrustBadge variant="verified-phone" />
+            <TrustBadge variant="verified-email" />
+            <TrustBadge variant="jobs-completed" value={worker.profileCompletion > 80 ? 8 : 3} />
+            <TrustBadge variant="response-time" value="<2 hrs" />
+          </View>
+
+          {/* Profile Completion */}
+          <View style={styles.completionContainer}>
+            <View style={styles.completionHeader}>
+              <Text style={styles.completionLabel}>Profile Completion</Text>
+              <Text style={styles.completionValue}>{worker.profileCompletion}%</Text>
+            </View>
+            <View style={styles.completionTrack}>
+              <View style={[styles.completionFill, { width: `${worker.profileCompletion}%` }]} />
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
+        <Button 
+          title="Message" 
+          variant="outlined" 
+          onPress={() => {
+            const conversationId = worker?.id ? worker.id.replace('worker-', 'conv-worker') : 'conv-worker1';
+            useChatStore.getState().initializeConversations();
+            (navigation as any).navigate('EmployerChatRoom', { conversationId });
+          }} 
+          style={styles.messageBtn}
+        />
         <Button title="Hire Worker" onPress={handleHire} style={styles.hireBtn} />
       </View>
     </ScreenContainer>
@@ -265,8 +315,48 @@ const styles = StyleSheet.create({
     padding: metrics.spacing.l,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
+    flexDirection: 'row',
+    gap: metrics.spacing.m,
+  },
+  messageBtn: {
+    flex: 1,
   },
   hireBtn: {
-    width: '100%',
-  }
+    flex: 2,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: metrics.spacing.s,
+    marginBottom: metrics.spacing.m,
+  },
+  completionContainer: {
+    marginTop: metrics.spacing.s,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: metrics.spacing.xs,
+  },
+  completionLabel: {
+    fontFamily: typography.fontFamily.regular,
+    fontSize: typography.sizes.body2,
+    color: colors.textSecondary,
+  },
+  completionValue: {
+    fontFamily: typography.fontFamily.semiBold,
+    fontSize: typography.sizes.body2,
+    color: colors.primary,
+  },
+  completionTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.divider,
+    overflow: 'hidden',
+  },
+  completionFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
 });

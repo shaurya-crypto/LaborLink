@@ -11,7 +11,7 @@ export const NotificationsScreen = () => {
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
   const getIconForCategory = (category: string) => {
     switch (category) {
@@ -141,5 +141,8 @@ const styles = StyleSheet.create({
     padding: metrics.spacing.xs,
     marginLeft: metrics.spacing.s,
     alignSelf: 'flex-start',
+  },
+  headerSpacer: {
+    width: 44,
   }
 });
